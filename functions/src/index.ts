@@ -10,8 +10,10 @@ import language from '@google-cloud/language';
 
 const projectId = 'mystical-option-280602';
 const keyFilename = '/Users/cathylee/Downloads/googleCloud-bb1d65b307f9.json';
-
 admin.initializeApp();
+const db = admin.firestore();
+db.settings({ timestampsInSnapshots: true });
+
 
 const app = express();
 const main = express();
@@ -23,7 +25,6 @@ main.use(bodyParser.json());
 main.use(bodyParser.urlencoded({extended:false}));
 main.use('/', app);
 
-// const db = admin.firestore();
 export const webApi = functions.https.onRequest(main);
 
 app.get('/', (req, res) => {
@@ -32,6 +33,7 @@ app.get('/', (req, res) => {
 
 app.get('/fetch', async(req, res) => {
   const url = req.query.url as string;
+  // TODO : cheerio <meta data> tags 
   const fetchUrl = await axios.get(url);
   const $ = cheerio.load(fetchUrl.data);
   const text = $('body').text();
@@ -58,7 +60,33 @@ app.get('/fetch', async(req, res) => {
   })
 })
 
-app.post('/postUrl', (req, res) => {
-  console.log(req.body);
+
+app.post('/postUrl', async (req, res) => {
+  const {url, tags} = req.body;
+  // TODO : cheerio <meta data> title, decs
+  // const fetchUrl = await axios.get(url);
+  // const $ = cheerio.load(fetchUrl.data);
+  // const title = $('header h1').text();
+  const tagsRef = db.collection('tags');
+  let tagIds = [] as any
+
+  await tags.forEach((tag: any) => {
+    tagsRef.doc(tag.name)
+      .get()
+      .then(doc => {
+        // tags 에 있는지 없는지 먼저 확인 
+        if (!doc.exists) {
+          // 없으면 추가
+          tagsRef.doc(tag.name).set({
+            ...tag,
+            id: doc.id
+          }) 
+        }
+      })
+    tagIds.push(tag.name);
+  })
   
+  // db tags의 id 값을 url 에 같이 넣기
+  await db.collection('urls').add({ url, tagIds })
+  res.send(200);
 })
