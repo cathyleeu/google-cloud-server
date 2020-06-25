@@ -31,15 +31,23 @@ app.get('/', (req, res) => {
   res.send('hello cathy')
 })
 
+
 app.get('/fetch', async(req, res) => {
   const url = req.query.url as string;
-  // TODO : cheerio <meta data> tags 
   const fetchUrl = await axios.get(url);
   const $ = cheerio.load(fetchUrl.data);
   const text = $('body').text();
-
+  const metas = ['article:tag', 'og:title', 'og:description', 'description'];
+  const metaText = metas.reduce((acc, meta) => {
+    let content = $(`meta[property='${meta}']`).attr('content');
+    if (meta === 'description') { content = $(`meta[name='${meta}']`).attr('content'); }
+    if (content !== undefined) { acc += ` ${content}` }
+    return acc;
+  }, '');
+  
+  
   const client = new language.LanguageServiceClient({projectId, keyFilename});
-  const document = { content: text, type: 'PLAIN_TEXT' };
+  const document = { content: metaText+text, type: 'PLAIN_TEXT' };
   // @ts-ignore
   const [classification] = await client.classifyText({document});
   // @ts-ignore
@@ -64,9 +72,11 @@ app.get('/fetch', async(req, res) => {
 app.post('/postUrl', async (req, res) => {
   const {url, tags} = req.body;
   // TODO : cheerio <meta data> title, decs
-  // const fetchUrl = await axios.get(url);
-  // const $ = cheerio.load(fetchUrl.data);
-  // const title = $('header h1').text();
+  const fetchUrl = await axios.get(url);
+  const $ = cheerio.load(fetchUrl.data);
+  const title = $(`meta[name='title']`).attr('content');
+  const desc = $(`meta[name='description']`).attr('content');
+
   const tagsRef = db.collection('tags');
   let tagIds = [] as any
 
@@ -77,16 +87,13 @@ app.post('/postUrl', async (req, res) => {
         // tags 에 있는지 없는지 먼저 확인 
         if (!doc.exists) {
           // 없으면 추가
-          tagsRef.doc(tag.name).set({
-            ...tag,
-            id: doc.id
-          }) 
+          tagsRef.doc(tag.name).set({ ...tag, id: doc.id })
         }
       })
     tagIds.push(tag.name);
   })
   
   // db tags의 id 값을 url 에 같이 넣기
-  await db.collection('urls').add({ url, tagIds })
+  await db.collection('urls').add({ url, tagIds, title, desc })
   res.send(200);
 })
