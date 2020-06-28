@@ -14,7 +14,6 @@ admin.initializeApp();
 const db = admin.firestore();
 db.settings({ timestampsInSnapshots: true });
 
-
 const app = express();
 const main = express();
 // const router = express.Router();
@@ -23,7 +22,11 @@ const main = express();
 main.use(cors({origin: true}));
 main.use(bodyParser.json());
 main.use(bodyParser.urlencoded({extended:false}));
-main.use('/', app);
+// TODO: express router
+// main.use('/', app);
+
+// main.use('/', require('./routes/index'));
+// main.use('/fetch', require('./routes/fetchUrl/index'));
 
 export const webApi = functions.https.onRequest(main);
 

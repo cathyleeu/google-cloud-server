@@ -8,7 +8,8 @@
     "strict": true,
     "target": "es2017",
     "strictNullChecks": false,
-    "lib": ["es6", "dom", "esnext"]
+    "lib": ["es6", "dom", "esnext"],
+    "allowSyntheticDefaultImports": true
   },
   "compileOnSave": true,
   "include": [
