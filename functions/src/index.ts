@@ -10,6 +10,7 @@ import language from '@google-cloud/language';
 
 const projectId = 'mystical-option-280602';
 const keyFilename = '/Users/cathylee/Downloads/googleCloud-bb1d65b307f9.json';
+const client = new language.LanguageServiceClient({projectId, keyFilename});
 admin.initializeApp();
 const db = admin.firestore();
 db.settings({ timestampsInSnapshots: true });
@@ -23,7 +24,7 @@ main.use(cors({origin: true}));
 main.use(bodyParser.json());
 main.use(bodyParser.urlencoded({extended:false}));
 // TODO: express router
-// main.use('/', app);
+main.use('/', app);
 
 // main.use('/', require('./routes/index'));
 // main.use('/fetch', require('./routes/fetchUrl/index'));
@@ -48,8 +49,6 @@ app.get('/fetch', async(req, res) => {
     return acc;
   }, '');
   
-  
-  const client = new language.LanguageServiceClient({projectId, keyFilename});
   const document = { content: metaText+text, type: 'PLAIN_TEXT' };
   // @ts-ignore
   const [classification] = await client.classifyText({document});
@@ -72,7 +71,7 @@ app.get('/fetch', async(req, res) => {
 })
 
 
-app.post('/postUrl', async (req, res) => {
+app.post('/analyze', async (req, res) => {
   const {url, tags} = req.body;
   // TODO : cheerio <meta data> title, decs
   const fetchUrl = await axios.get(url);
@@ -99,4 +98,16 @@ app.post('/postUrl', async (req, res) => {
   // db tags의 id 값을 url 에 같이 넣기
   await db.collection('urls').add({ url, tagIds, title, desc })
   res.send(200);
+})
+
+app.post('/analyze/comment', async (req, res) => {
+  console.log('WORK');
+  
+  const {content} = req.body;
+  const document = {content, type: 'PLAIN_TEXT'};
+  // @ts-ignore
+  const [result] = await client.analyzeSentiment({document});
+  res.json({
+    sentiment: result.documentSentiment
+  })
 })
