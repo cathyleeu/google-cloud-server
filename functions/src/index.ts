@@ -106,8 +106,11 @@ app.post('/analyze/comment', async (req, res) => {
   const {content} = req.body;
   const document = {content, type: 'PLAIN_TEXT'};
   // @ts-ignore
-  const [result] = await client.analyzeSentiment({document});
+  const [sentiment] = await client.analyzeSentiment({document});
+  // @ts-ignore
+  const [entitySentiment] = await client.analyzeEntitySentiment({document});
   res.json({
-    sentiment: result.documentSentiment
+    sentiment: sentiment.documentSentiment,
+    entitySentiment: entitySentiment.entities,
   })
 })
